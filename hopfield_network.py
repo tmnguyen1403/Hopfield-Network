@@ -2,13 +2,6 @@ from PIL import Image
 import numpy as np
 import os
 
-
-#Convert to black and white
-# image = Image.open("0.png")
-# image_bw = image.convert("1")
-# image_bw.save("0_bw.png")
-#image.show()
-
 #Show image pixel:
 def getImagePath(rootFolder,imageName):
     return os.path.join(rootFolder,imageName)
@@ -39,9 +32,14 @@ for i in range(8):
 
 bipolarArrays = [np.vectorize(imageToBiPolar)(array) for array in numberImages]
 
+maxRow = 10
+maxCol = 10
 #Debug values
 for i,bipolarImage in enumerate(bipolarArrays):
     print(f"Number {i}")
+    if bipolarImage.shape != (maxRow,maxCol):
+        print(f"Image does not have the correct dimension. Expect: {(maxRow,maxCol)}. Image: {(bipolarImage.shape)}")
+        exit(1)
     print(bipolarImage)
 
 # Training
@@ -52,3 +50,13 @@ TODO:
 3. Train the Hopfield Network
 '''
 
+
+# TODO: 1. Initialize weight with the 8 examplars
+identityMatrix = np.eye(100)
+weight = np.zeros((maxRow*maxRow, maxCol*maxCol))
+for i,imageArray in enumerate(bipolarArrays):
+    weight += np.outer(imageArray,imageArray)
+    weight -= identityMatrix
+
+#verify that the left diagonal is all zero
+print(f"Left diagonal values are all zero: {np.all(np.diag(weight) == 0)}")
