@@ -1,23 +1,7 @@
 from PIL import Image
-import numpy as np
 import os
-
-#Show image pixel:
-def getImagePath(rootFolder,imageName):
-    return os.path.join(rootFolder,imageName)
-
-# 0(black) --> 1(black)
-# 1(white) --> -1(white) is black, 1 is white
-def imageToBiPolar(value):
-    #Black is 1
-    if value == 0:
-        return 1
-    #White is -1 
-    elif value == 1:
-        return -1
-    else:
-        print("The function receive unknow value ")
-        return 0
+import numpy as np
+from file_util import (getImagePath,imageToBiPolar,saveOutput,randomFlip,hardLimit)
 
 #Done: Convert bw image values to bipolar values   
 imageFolder = f"Images{os.path.sep}BlackWhite"
@@ -28,7 +12,7 @@ for i in range(8):
     imageBW = Image.open(imagePath)
     imageArray = np.array(imageBW)
     imageArray = imageArray.astype(int)
-    numberImages.append(imageArray)
+    numberImages.append(imageArray.copy())
 
 bipolarArrays = [np.vectorize(imageToBiPolar)(array) for array in numberImages]
 
@@ -57,56 +41,46 @@ weight = np.zeros((maxRow*maxRow, maxCol*maxCol))
 for i,imageArray in enumerate(bipolarArrays):
     weight += np.outer(imageArray,imageArray)
     weight -= identityMatrix
-
+print("weight:\n", weight)
+#exit(0)
 #verify that the left diagonal is all zero
-print(f"Left diagonal values are all zero: {np.all(np.diag(weight) == 0)}")
+if not np.all(np.diag(weight) == 0):
+    print("Error: Left diagonal values are not all zero")
+    exit(1)
 
 # Train to recognize 1
-number = 2
-inputImage = bipolarArrays[number]
-#Random flip input with 0.25 probability
-def randomFlip(x,prob=0.25):
-    if np.random.rand() >= prob:
-        return -1.0*x
-    return x
-inputFlip = np.vectorize(randomFlip)(inputImage)
-#Save the flip input for retrain
+number = 7
+inputImage = bipolarArrays[number].copy()
+
+inputFlip = inputImage#np.vectorize(randomFlip)(inputImage)
+#DEBUG: Save the flip input for retrain
 inputFolder = "Input"
 inputName = f"{number}_flip.txt"
 inputPath = getImagePath(inputFolder,inputName)
 np.savetxt(inputPath, inputFlip,fmt='%.0f')
 
-#Asynchronous update
 #Dimension: 10x10 --> 1 x 100
-def threshold(x):
-    if x > 0:
-        return 1
-    else:
-        return -1
-
 inputFlatten = inputFlip.flatten()
 print(f"flattenshape: {inputFlatten}")
 prevInput = np.zeros(len(inputFlatten))
 loopCounter = 0
 originalFlatten = inputImage.flatten()
-while not np.all(inputFlatten == prevInput):
+maxRun = 20
+outputFolder = "Output"
+while not np.all(inputFlatten == originalFlatten) and (loopCounter < maxRun):
+    loopCounter += 1
+    print(f"Epoch: {loopCounter}")
+    # Asynchronous update
     for i in range(len(inputFlatten)):
-        loopCounter += 1
-        print(f"Epoch: {loopCounter}")
         #dot product
         dotvalue = np.dot(weight[i],inputFlatten)
-        print(f"dotvalue: {dotvalue} - threshold: {threshold(dotvalue)}")
-        inputFlatten[i] = threshold(dotvalue)
-        if np.all(inputFlatten == prevInput):
-            print(f"Converge. #loops {loopCounter}")
-            break
-        else:
-            prevInput = inputFlatten.copy()
-
-# Output inspect
-outputFolder = "Output"
-outputName = inputName
-outputPath = getImagePath(outputFolder,outputName)
-outputImage = inputFlatten.reshape(maxRow,maxCol)
-np.savetxt(outputPath,outputImage,fmt="%.0f")
-
+        print(f"dotvalue: {dotvalue} - threshold: {hardLimit(dotvalue)}")
+        inputFlatten[i] = hardLimit(dotvalue)
+        # if np.all(inputFlatten == originalFlatten):
+        #     print(f"Converge. #loops {loopCounter}")
+        #     break
+        # else:
+        #     prevInput = inputFlatten.copy()
+    outputName = f"{number}_{loopCounter}.txt"
+    outputData = inputFlatten.reshape(maxRow,maxCol)
+    saveOutput(outputFolder,outputName,outputData)
