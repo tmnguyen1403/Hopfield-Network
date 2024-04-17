@@ -10,14 +10,14 @@ TODO:
 '''
 
 #Done: Convert images to blackwhite images
-imageFolder = "Images"
+imageFolder = "Images/v1"
+bwFolder = "Images/BlackWhite/v1"
 for i in range(8):
-
     imageName = f"{i}.png"
     imagePath = getImagePath(imageFolder, imageName)
     image = Image.open(imagePath)
     imageBW = image.convert("1")
     bwName = f"{i}_bw.png"
-    bwPath = getImagePath(imageFolder,bwName)
+    bwPath = getImagePath(bwFolder,bwName)
     imageBW.save(bwPath)
 exit()

@@ -4,9 +4,10 @@ import numpy as np
 from file_util import (getImagePath,imageToBiPolar,saveOutput,randomFlip,hardLimit)
 
 #Done: Convert bw image values to bipolar values   
-imageFolder = f"Images{os.path.sep}BlackWhite"
-numberImages = [] 
-for i in range(8):
+imageFolder = f"Images{os.path.sep}BlackWhite/v1"
+numberImages = []
+maxNumber = 2
+for i in range(maxNumber):
     imageName = f"{i}_bw.png"
     imagePath = getImagePath(imageFolder, imageName)
     imageBW = Image.open(imagePath)
@@ -36,51 +37,63 @@ TODO:
 
 
 # TODO: 1. Initialize weight with the 8 examplars
-identityMatrix = np.eye(100)
 weight = np.zeros((maxRow*maxRow, maxCol*maxCol))
 for i,imageArray in enumerate(bipolarArrays):
     weight += np.outer(imageArray,imageArray)
-    weight -= identityMatrix
 print("weight:\n", weight)
+#Zero out the weight:
+for i in range(len(weight)):
+    weight[i][i] = 0
+print("zero weight:\n", weight)
 #exit(0)
 #verify that the left diagonal is all zero
 if not np.all(np.diag(weight) == 0):
     print("Error: Left diagonal values are not all zero")
     exit(1)
 
-# Train to recognize 1
-number = 7
-inputImage = bipolarArrays[number].copy()
+# Train to recognize number
+for number in range(maxNumber):
+    inputImage = bipolarArrays[number].copy()
 
-inputFlip = inputImage#np.vectorize(randomFlip)(inputImage)
-#DEBUG: Save the flip input for retrain
-inputFolder = "Input"
-inputName = f"{number}_flip.txt"
-inputPath = getImagePath(inputFolder,inputName)
-np.savetxt(inputPath, inputFlip,fmt='%.0f')
+    inputFlip = np.vectorize(randomFlip)(inputImage)
+    #DEBUG: Save the flip input for retrain
+    inputFolder = "Input/v1"
+    inputName = f"{number}_flip.txt"
+    inputPath = getImagePath(inputFolder,inputName)
+    np.savetxt(inputPath, inputFlip,fmt='%.0f')
 
-#Dimension: 10x10 --> 1 x 100
-inputFlatten = inputFlip.flatten()
-print(f"flattenshape: {inputFlatten}")
-prevInput = np.zeros(len(inputFlatten))
-loopCounter = 0
-originalFlatten = inputImage.flatten()
-maxRun = 20
-outputFolder = "Output"
-while not np.all(inputFlatten == originalFlatten) and (loopCounter < maxRun):
-    loopCounter += 1
-    print(f"Epoch: {loopCounter}")
-    # Asynchronous update
-    for i in range(len(inputFlatten)):
-        #dot product
-        dotvalue = np.dot(weight[i],inputFlatten)
-        print(f"dotvalue: {dotvalue} - threshold: {hardLimit(dotvalue)}")
-        inputFlatten[i] = hardLimit(dotvalue)
-        # if np.all(inputFlatten == originalFlatten):
-        #     print(f"Converge. #loops {loopCounter}")
-        #     break
-        # else:
-        #     prevInput = inputFlatten.copy()
-    outputName = f"{number}_{loopCounter}.txt"
-    outputData = inputFlatten.reshape(maxRow,maxCol)
-    saveOutput(outputFolder,outputName,outputData)
+    #Dimension: 10x10 --> 1 x 100
+    inputFlatten = inputFlip.flatten()
+    print(f"flattenshape: {inputFlatten}")
+    prevInput = np.zeros(len(inputFlatten))
+    loopCounter = 0
+    originalFlatten = inputImage.flatten()
+    maxRun = 2
+    outputFolder = "Output/v1"
+    # iTest = np.dot(weight, inputFlatten)
+    # print("Itest\n",iTest,iTest.shape)
+    # iHard = np.vectorize(hardLimit)(iTest)
+    # print("Ihard\n",iHard,iHard.shape)
+    # print("Ihard\n",iHard.reshape(maxRow,maxCol))
+    # np.savetxt(inputPath, iHard.reshape(maxRow,maxCol),fmt='%.0f')
+    divisor = 4
+    while not np.all(inputFlatten == originalFlatten) and (loopCounter < maxRun):
+        loopCounter += 1
+        print(f"Epoch: {loopCounter}")
+        # Asynchronous update
+        for i in range(len(inputFlatten)):
+            #dot product
+            print(f"weight{i}", weight[i])
+            dotvalue = np.dot(weight[i],inputFlatten)
+            print(f"dotvalue: {dotvalue} - threshold: {hardLimit(dotvalue)}")
+            inputFlatten[i] = hardLimit(dotvalue)
+            #print(f"{i}:\n",inputFlatten)
+            # if np.all(inputFlatten == originalFlatten):
+            #     print(f"Converge. #loops {loopCounter}")
+            #     break
+            # else:
+            #     prevInput = inputFlatten.copy()
+            if i % divisor == 0:
+                outputName = f"{number}_{loopCounter}_{i}.txt"
+                outputData = inputFlatten.reshape(maxRow,maxCol)
+                saveOutput(outputFolder,outputName,outputData)
