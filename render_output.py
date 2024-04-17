@@ -4,9 +4,13 @@ from file_util import (getImagePath,bipolarToImage)
 import os
 #Done: Convert bw image values to bipolar values   
 outputFolder = "Output/v1"
-maxNumber = 2
-divisor = 4 
-for selected_number in range(maxNumber):
+examplarNumbers = [3,5]
+divisor = 10
+numberstr = ''.join([str(i) for i in examplarNumbers])
+outputImageFolder = f"OutputImages/v1_{numberstr}"
+if not os.path.exists(outputImageFolder):
+    os.mkdir(outputImageFolder)
+for selected_number in examplarNumbers:
     numberOutput = []
     maxIteration = 2
     for i in range(maxIteration):
@@ -19,9 +23,7 @@ for selected_number in range(maxNumber):
             imageMatrix = np.loadtxt(imagePath)
             numberOutput.append(imageMatrix)
     #print(numberOutput)
-    bwImages = [np.vectorize(bipolarToImage)(matrix) for matrix in numberOutput]
-
-    outputImageFolder = "OutputImages/v1"
+    bwImages = [np.vectorize(bipolarToImage)(matrix) for matrix in numberOutput]   
     for image in bwImages:
         for i in range(maxIteration):
             for j in range(0,100,divisor):

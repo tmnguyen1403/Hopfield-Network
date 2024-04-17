@@ -6,9 +6,9 @@ from file_util import (getImagePath,imageToBiPolar,saveOutput,randomFlip,hardLim
 #Done: Convert bw image values to bipolar values   
 imageFolder = f"Images{os.path.sep}BlackWhite/v1"
 numberImages = []
-maxNumber = 2
-for i in range(maxNumber):
-    imageName = f"{i}_bw.png"
+examplarNumbers = [3,5]
+for number in examplarNumbers:
+    imageName = f"{number}_bw.png"
     imagePath = getImagePath(imageFolder, imageName)
     imageBW = Image.open(imagePath)
     imageArray = np.array(imageBW)
@@ -52,8 +52,8 @@ if not np.all(np.diag(weight) == 0):
     exit(1)
 
 # Train to recognize number
-for number in range(maxNumber):
-    inputImage = bipolarArrays[number].copy()
+for index,number in enumerate(examplarNumbers):
+    inputImage = bipolarArrays[index].copy()
 
     inputFlip = np.vectorize(randomFlip)(inputImage)
     #DEBUG: Save the flip input for retrain
@@ -76,7 +76,7 @@ for number in range(maxNumber):
     # print("Ihard\n",iHard,iHard.shape)
     # print("Ihard\n",iHard.reshape(maxRow,maxCol))
     # np.savetxt(inputPath, iHard.reshape(maxRow,maxCol),fmt='%.0f')
-    divisor = 4
+    divisor = 100
     while not np.all(inputFlatten == originalFlatten) and (loopCounter < maxRun):
         loopCounter += 1
         print(f"Epoch: {loopCounter}")

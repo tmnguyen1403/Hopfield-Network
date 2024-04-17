@@ -11,3 +11,9 @@ The output of this program should display the sequence of iterates displayed in 
 Display at least two sequences each sequence starting with a noisy version of one of the exemplars.  Feel free to experiment.
 
 Question: Where is the Lippman's paper and the examples?
+
+# The result of the network:
+## V1 Input
+1. Training 2 numbers works well
+2. Training more than 3 numbers does not really work despite pattern does not overlap
+
