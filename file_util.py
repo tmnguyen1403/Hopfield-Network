@@ -49,7 +49,7 @@ def hardLimit(x):
         return -1
     
 
-def compare_image(im1,im2):
+def compare_image(im1,im2,positive=1):
     # compare pixel by pixel
     # then calculate the score
     r1,c1 = len(im1),len(im1[0])
@@ -57,12 +57,40 @@ def compare_image(im1,im2):
     if r1 != r2 or c1 != c2:
         print("Two images have different size")
         return 0
-    similar_count = 0
+    similar_count = 0.0
+    total_positive = 0.0
     for i in range(r1):
         for j in range(c1):
-            if im1[i][j] == im2[i][j]:
-                similar_count += 1
-    similar_score = similar_count / (r1*c1)
+            if im1[i][j] == positive:
+                if im1[i][j] == im2[i][j]:
+                    similar_count += 1.0
+                total_positive += 1.0
+            elif im2[i][j] == positive:
+                #penalty the similar count
+                similar_count -= 1.0
+            
+    similar_score = similar_count / total_positive
+    return similar_score
+
+def compare_state(expect_state,result_state,positive=1):
+    # compare pixel by pixel
+    # then calculate the score
+    n1 = len(expect_state)
+    n2 = len(result_state)
+    if n1 != n2:
+        print("Two states have different size")
+        return 0
+    similar_count = 0.0
+    total_positive = 0.0
+    for i,value in enumerate(expect_state):
+        if value == positive:
+            if value == result_state[i]:
+                similar_count += 1.0
+            total_positive += 1.0
+        elif result_state[i] == positive:
+            #penalty the similar count
+            similar_count -= 1.0
+    similar_score = similar_count / total_positive
     return similar_score
 
 def test_f(input,assert_func,func,msg = ""):

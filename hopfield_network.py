@@ -3,7 +3,7 @@ import os
 import ast 
 import numpy as np
 import random
-from file_util import (getImagePath,imageToBiPolar,saveOutput,randomFlip,hardLimit,compare_image)
+from file_util import (getImagePath,imageToBiPolar,saveOutput,randomFlip,hardLimit,compare_image,compare_state)
 
 
 maxRow = 10
@@ -39,17 +39,20 @@ def exemplarFromMatrix(folder_path):
 # Two options to read exemplars:
 #OPTION 1:
 #   bipolarArrays that was produced from Minh's images.
-'''exemplarNumbers = [3,5]
-imageFolder = f"Images{os.path.sep}BlackWhite/v1"
+
+#exemplarNumbers = [3,5]
+
+exemplarNumbers = [i for i in range(0,8)]
+imageFolder = f"Images{os.path.sep}BlackWhite/v0"
 numberImages = exemplarFromImageFiles(imageFolder, exemplarNumbers)
 bipolarArrays = [np.vectorize(imageToBiPolar)(array) for array in numberImages]
-'''
 
 #OPTION 2:
 #   bipolarArrays that was produced using Sootatt's drawing pad.
-exemplarNumbers = [i for i in range(0,8)]
-rawdataFolder = f"{os.getcwd()}{os.path.sep}input{os.path.sep}new1"
-bipolarArrays = exemplarFromMatrix(rawdataFolder)
+
+# exemplarNumbers = [i for i in range(0,8)]
+# rawdataFolder = f"{os.getcwd()}{os.path.sep}input{os.path.sep}new1"
+# bipolarArrays = exemplarFromMatrix(rawdataFolder)
 
 
 
@@ -84,11 +87,13 @@ if not np.all(np.diag(weight) == 0):
     print("Error: Left diagonal values are not all zero")
     exit(1)
 
-def recallNumber(exemplars, noisyInput, w, expect_examplar):
+def recallNumber(exemplars, noisyInput, w, expect_examplar,threshold=0.9):
     global maxRow, maxCol
-    max_iteration = 100
+    max_iteration = 200
     statecp = np.copy(noisyInput)
     # Asynchronous update:
+    reshape_examplar = np.reshape(expect_examplar,(10,10))
+    final_similar_score = 0.0
     for j in range(max_iteration):
         state =np.copy(statecp)
         # Randomize the order on which neuron to update first.
@@ -101,10 +106,16 @@ def recallNumber(exemplars, noisyInput, w, expect_examplar):
                 state[i] = 1
             else:
                 state[i] = -1
-            # Check for convergence:
-            if np.array_equal(expect_examplar,state):
+            # Check for convergence:            
+            #return state
+            #similar_score = compare_image(reshape_examplar,np.reshape(state,(10,10)))
+            similar_score = compare_state(expect_examplar,state)
+            if similar_score >= threshold:
                 print(f"\nConverge at iteration: {j} - update: {i}\n")
+                print(f"\nConverge at iteration: {j} - update: {i} - similar score: {similar_score}\n")
                 return state
+
+    print(f"similar_score is smaller than threshold: {similar_score} < {threshold}")
     return state
 
 
@@ -114,36 +125,41 @@ for array in bipolarArrays:
     flattened_bipolarArrays.append(array.flatten())
 
 #Creating noisy input of number 'target':
+
 target = 2
-chosen_img = flattened_bipolarArrays[target]
-noisyInput = np.copy(chosen_img)
-# Randomly select 5-15 indices to flip: 
-flip_index = random.sample(range(0, 100), random.randint(2, 4))
-for i in flip_index:
-    noisyInput[i] = noisyInput[i] * -1
+for target in range(8):
+    noise_level = random.randint(10,15)
+    chosen_img = flattened_bipolarArrays[target]
+    noisyInput = np.copy(chosen_img)
+    # Randomly select 5-15 indices to flip:
+
+    flip_index = random.sample(range(0, 100), noise_level)
+    for i in flip_index:
+        noisyInput[i] = noisyInput[i] * -1
+    print(f"noise_level: {noise_level}")
 
 
-result = recallNumber(flattened_bipolarArrays,noisyInput,weight,chosen_img)
-if len(result) > 0:
-    similar_score = compare_image(np.reshape(chosen_img,(10,10)),np.reshape(result,(10,10)))
-    print(f"similar_score: {similar_score}")    
+    result = recallNumber(flattened_bipolarArrays,noisyInput,weight,chosen_img)
+    # if len(result) > 0:
+    #     similar_score = compare_image(np.reshape(chosen_img,(10,10)),np.reshape(result,(10,10)))
+    #     print(f"similar_score: {similar_score}")    
 
-noisyInput = np.array(['X' if x==1 else ' ' for x in noisyInput])
-noisyInput = noisyInput.reshape(10,10)
-print("noisyInput:\n",noisyInput)
-
-
-original = np.array(['X' if x==1 else ' ' for x in flattened_bipolarArrays[target]])
-original = original.reshape(10,10)
-print("original:\n",original)
+    noisyInput = np.array(['X' if x==1 else ' ' for x in noisyInput])
+    noisyInput = noisyInput.reshape(10,10)
+    print("noisyInput:\n",noisyInput)
 
 
-if result is not None:
-    result = np.array(['X' if x==1 else ' ' for x in result])
-    result = result.reshape(10,10)
-    print("result:\n", result)
+    original = np.array(['X' if x==1 else ' ' for x in flattened_bipolarArrays[target]])
+    original = original.reshape(10,10)
+    print("original:\n",original)
 
-print("-------------------------------------------")
+
+    if result is not None:
+        result = np.array(['X' if x==1 else ' ' for x in result])
+        result = result.reshape(10,10)
+        print("result:\n", result)
+
+    print("-------------------------------------------")
 
 # --------------------------------------------------------------------------------------------------------------
 '''
