@@ -3,7 +3,7 @@ import os
 import ast 
 import numpy as np
 import random
-from file_util import (getImagePath,imageToBiPolar,saveOutput,randomFlip,hardLimit)
+from file_util import (getImagePath,imageToBiPolar,saveOutput,randomFlip,hardLimit,compare_image)
 
 
 maxRow = 10
@@ -25,11 +25,12 @@ def exemplarFromImageFiles(folderpath, listNum):
 
 
 # Read exemplars from text file with exemplars matrices.
-def exemplarFromMatrix(filepath):
+def exemplarFromMatrix(folder_path):
     exemplars = []
     for i in range(8):
         filename = f"{i}.txt"
-        with open(filepath + "\\" + filename, "r") as f:
+        file_path = os.path.join(folder_path,filename)
+        with open(file_path, "r") as f:
             data = ast.literal_eval(f.read())
             exemplars.append(np.array(data))
     return np.array(exemplars)
@@ -47,7 +48,7 @@ bipolarArrays = [np.vectorize(imageToBiPolar)(array) for array in numberImages]
 #OPTION 2:
 #   bipolarArrays that was produced using Sootatt's drawing pad.
 exemplarNumbers = [i for i in range(0,8)]
-rawdataFolder = os.getcwd()+"\\input\\new1"
+rawdataFolder = f"{os.getcwd()}{os.path.sep}input{os.path.sep}new1"
 bipolarArrays = exemplarFromMatrix(rawdataFolder)
 
 
@@ -83,7 +84,7 @@ if not np.all(np.diag(weight) == 0):
     print("Error: Left diagonal values are not all zero")
     exit(1)
 
-def recallNumber(exemplars, noisyInput, w):
+def recallNumber(exemplars, noisyInput, w, expect_examplar):
     global maxRow, maxCol
     max_iteration = 100
     statecp = np.copy(noisyInput)
@@ -101,11 +102,10 @@ def recallNumber(exemplars, noisyInput, w):
             else:
                 state[i] = -1
             # Check for convergence:
-            for num, numArrays in enumerate(exemplars):
-                if np.array_equal(numArrays, state):
-                    print("\nThe number is ", num , "\n")
-                    return state
-    return None
+            if np.array_equal(expect_examplar,state):
+                print(f"\nConverge at iteration: {j} - update: {i}\n")
+                return state
+    return state
 
 
 # --------------------------------------------------------------------------------------------------------------
@@ -114,15 +114,20 @@ for array in bipolarArrays:
     flattened_bipolarArrays.append(array.flatten())
 
 #Creating noisy input of number 'target':
-target = 6
-noisyInput = np.copy(flattened_bipolarArrays[target])
+target = 2
+chosen_img = flattened_bipolarArrays[target]
+noisyInput = np.copy(chosen_img)
 # Randomly select 5-15 indices to flip: 
 flip_index = random.sample(range(0, 100), random.randint(2, 4))
 for i in flip_index:
     noisyInput[i] = noisyInput[i] * -1
 
 
-result = recallNumber(flattened_bipolarArrays,noisyInput,weight)
+result = recallNumber(flattened_bipolarArrays,noisyInput,weight,chosen_img)
+if len(result) > 0:
+    similar_score = compare_image(np.reshape(chosen_img,(10,10)),np.reshape(result,(10,10)))
+    print(f"similar_score: {similar_score}")    
+
 noisyInput = np.array(['X' if x==1 else ' ' for x in noisyInput])
 noisyInput = noisyInput.reshape(10,10)
 print("noisyInput:\n",noisyInput)

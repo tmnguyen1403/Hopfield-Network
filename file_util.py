@@ -47,3 +47,37 @@ def hardLimit(x):
         return 1
     else:
         return -1
+    
+
+def compare_image(im1,im2):
+    # compare pixel by pixel
+    # then calculate the score
+    r1,c1 = len(im1),len(im1[0])
+    r2,c2 = len(im2),len(im2[0])
+    if r1 != r2 or c1 != c2:
+        print("Two images have different size")
+        return 0
+    similar_count = 0
+    for i in range(r1):
+        for j in range(c1):
+            if im1[i][j] == im2[i][j]:
+                similar_count += 1
+    similar_score = similar_count / (r1*c1)
+    return similar_score
+
+def test_f(input,assert_func,func,msg = ""):
+    print(msg)
+    result = func(*input)
+    assert_func(result)
+
+def assert_img_score(expect,result):
+    assert(round(expect,2)==round(result,2))
+
+if __name__ == "__main__":
+    a = [[1,1,1,1],[1,1,1,1],[1,1,1,1]]
+    test_f((a,a),lambda x: assert_img_score(1.0,x),compare_image,"Test score of the same image")
+    b = np.copy(a)
+    b[0][0] = -1
+    b[0][1] = -1
+
+    test_f((a,b),lambda x: assert_img_score(0.83,x),compare_image,"Test score of the same image")
